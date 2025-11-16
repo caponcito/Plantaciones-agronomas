@@ -1,0 +1,14 @@
+name: entorno_geo
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - flask>=3.0.0
+  - numpy>=1.24.0
+  - pandas>=2.0.0
+  - networkx>=3.0
+  - scikit-learn>=1.3.0
+  - folium>=0.14.0
+  - osmnx>=1.6.0
+  - geopandas>=0.13.0
+  - shapely>=2.0.0

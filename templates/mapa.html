@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Logístico Agrícola - Yuma County</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            color: #1f2933;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(6px);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(15, 23, 42, 0.2);
+            z-index: 1000;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
+        .panel-header h2 {
+            font-size: 20px;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+
+        .panel-header p {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        /* Agregar estilos para info-section */
+        .info-section {
+            margin-top: 18px;
+            padding: 14px 16px;
+            background: rgba(241, 245, 249, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .info-section h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .info-section p {
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        /* Agregar estilos para selected-nodes */
+        .selected-nodes {
+            margin-top: 18px;
+            padding: 14px 16px;
+            background: rgba(241, 245, 249, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .selected-nodes h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .node-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            font-size: 13px;
+        }
+
+        .node-item strong {
+            color: #0f172a;
+        }
+
+        .node-item small {
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        /* Agregar estilos para ruta-info */
+        .ruta-info {
+            margin-top: 18px;
+            padding: 14px 16px;
+            background: rgba(241, 245, 249, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .ruta-info h4 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .ruta-info p {
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .ruta-info hr {
+            border: none;
+            border-top: 1px solid rgba(148, 163, 184, 0.3);
+            margin: 12px 0;
+        }
+
+        /* Agregar estilos para botones adicionales */
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Agregar estilos para loading */
+        .loading {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            text-align: center;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 10px;
+            color: #3b82f6;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Agregar estilos para legend (la leyenda principal) */
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(6px);
+            padding: 14px 16px;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            z-index: 1000;
+            min-width: 230px;
+        }
+
+        .legend h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+
+        .panel-section {
+            margin-top: 18px;
+            padding: 14px 16px;
+            background: rgba(241, 245, 249, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .panel-section h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .info-value.muted {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #0f172a;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 20px rgba(15, 23, 42, 0.15);
+        }
+
+        .route-panel {
+            background: rgba(15, 23, 42, 0.85);
+            color: white;
+            border: none;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .route-panel h3 {
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .route-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .stat-card {
+            padding: 10px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #cbd5f5;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .route-alert {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        .route-alert.alert-safe {
+            background: rgba(34, 197, 94, 0.18);
+            color: #bbf7d0;
+        }
+
+        .route-alert.alert-warning {
+            background: rgba(250, 204, 21, 0.18);
+            color: #fde68a;
+        }
+
+        .route-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 14px 16px;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            z-index: 1000;
+            min-width: 230px;
+        }
+
+        .legend-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .legend-swatch {
+            width: 28px;
+            height: 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.1);
+        }
+
+        .legend-marker {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 3px 6px rgba(15, 23, 42, 0.2);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+       @media (max-width: 900px) {
+            .control-panel {
+                width: calc(100% - 40px);
+                left: 50%;
+                transform: translateX(-50%);
+                max-width: 420px;
+            }
+
+            .route-legend {
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: 120px;
+            }
+
+            .legend {
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: 20px;
+                width: calc(100% - 40px);
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="control-panel">
+        <h2>🗺️ Sistema Logístico Agrícola</h2>
+        
+        <div class="info-section">
+            <h3>Instrucciones</h3>
+            <p>1. Haz clic en dos nodos del mapa</p>
+            <p>2. Se mostrará la distancia y ruta entre ellos</p>
+            <p>3. Usa los botones para limpiar o ver predicciones</p>
+        </div>
+        
+        <div class="selected-nodes">
+            <h3>Nodos Seleccionados</h3>
+            <div id="selected-nodes-list">
+                <p style="color: #95a5a6; font-size: 11px;">Ningún nodo seleccionado</p>
+            </div>
+        </div>
+        
+        <div id="ruta-info" style="display: none;"></div>
+        
+        <div style="margin-top: 15px;">
+            <button class="btn btn-danger" onclick="limpiarSeleccion()">Limpiar Selección</button>
+            <button class="btn btn-success" onclick="mostrarPredicciones()">Ver Predicciones IA</button>
+            <button class="btn btn-primary" onclick="mostrarRutasOptimas()">Rutas Óptimas</button>
+            <button class="btn btn-primary" onclick="mostrarParcelasPriorizadas()">Parcelas Priorizadas</button>
+            <button class="btn btn-primary" onclick="colorearPorProduccion()">Colorear por Producción</button>
+        </div>
+        
+        <div class="loading" id="loading">Cargando...</div>
+    </div>
+    
+    <div class="legend">
+        <h4 style="margin-bottom: 10px; font-size: 14px;">Leyenda</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #27ae60;"></div>
+            <span>🍊 Parcelas de Naranjas</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3498db;"></div>
+            <span>Centros de Acopio</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span>Planta Extractora</span>
+        </div>
+        <div class="legend-item">
+            <div style="width: 20px; height: 3px; background: #27ae60; margin-right: 8px;"></div>
+            <span>Camino Pavimentado</span>
+        </div>
+        <div class="legend-item">
+            <div style="width: 20px; height: 3px; background: #f39c12; margin-right: 8px;"></div>
+            <span>Camino de Grava</span>
+        </div>
+        <div class="legend-item">
+            <div style="width: 20px; height: 3px; background: #8b4513; margin-right: 8px;"></div>
+            <span>Camino de Tierra</span>
+        </div>
+        <div class="legend-item" id="produccion-legend" style="display: none;">
+            <div style="width: 20px; height: 3px; background: linear-gradient(to right, yellow, red); margin-right: 8px;"></div>
+            <span>Producción: Amarillo (bajo) → Rojo (alto)</span>
+        </div>
+        <div class="legend-item" id="ruta-optima-legend" style="display: none;">
+            <div style="width: 20px; height: 3px; background: #e74c3c; margin-right: 8px;"></div>
+            <span>Ruta Óptima (línea roja gruesa)</span>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let map;
+        let markers = {};
+        let polylines = [];
+        let selectedNodes = [];
+        let rutaLine = null;
+        let rutasOptimasLines = [];
+        let nodosData = [];
+        let aristasData = [];
+        let prediccionesData = null;
+        let coloreadoPorProduccion = false;
+
+        // Inicializar mapa
+        function initMap() {
+            map = L.map('map').setView([32.6927, -114.6277], 10);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            cargarDatos();
+        }
+
+        // Cargar nodos y aristas desde la API
+        async function cargarDatos() {
+            try {
+                // Cargar nodos
+                const responseNodos = await fetch('/api/nodos');
+                nodosData = await responseNodos.json();
+                
+                // Cargar aristas
+                const responseAristas = await fetch('/api/aristas');
+                aristasData = await responseAristas.json();
+                
+                // Cargar predicciones para colorear
+                const responsePredicciones = await fetch('/api/predicciones-todas');
+                const dataPredicciones = await responsePredicciones.json();
+                prediccionesData = dataPredicciones;
+                
+                // Dibujar en el mapa
+                dibujarAristas();
+                dibujarNodos();
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+            }
+        }
+
+        // Función para obtener color según producción
+        function obtenerColorPorProduccion(produccion, minProd, maxProd) {
+            if (!coloreadoPorProduccion || !prediccionesData) {
+                return '#27ae60'; // Color por defecto
+            }
+            
+            // Normalizar producción entre 0 y 1
+            const normalized = (produccion - minProd) / (maxProd - minProd);
+            
+            // Interpolar entre amarillo (bajo) y rojo (alto)
+            const r = Math.min(255, Math.floor(255 * normalized));
+            const g = Math.min(255, Math.floor(255 * (1 - normalized)));
+            const b = 0;
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        // Dibujar nodos en el mapa
+        function dibujarNodos() {
+            nodosData.forEach(nodo => {
+                let color, icon;
+                
+                if (nodo.tipo === 'parcela_cultivo') {
+                    // Si está coloreado por producción, usar ese color
+                    if (coloreadoPorProduccion && prediccionesData) {
+                        const pred = prediccionesData.predicciones.find(p => p.parcela_id === nodo.id);
+                        if (pred) {
+                            color = obtenerColorPorProduccion(
+                                pred.produccion_predicha,
+                                prediccionesData.min_produccion,
+                                prediccionesData.max_produccion
+                            );
+                        } else {
+                            color = '#27ae60';
+                        }
+                    } else {
+                        color = '#27ae60';
+                    }
+                    icon = '🍊'; // Icono de naranja
+                } else if (nodo.tipo === 'centro_acopio') {
+                    color = '#3498db';
+                    icon = '🏭';
+                } else if (nodo.tipo === 'planta_extractora') {
+                    color = '#e74c3c';
+                    icon = '🏢';
+                }
+                
+                const marker = L.marker([nodo.latitud, nodo.longitud], {
+                    icon: L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="background: ${color}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px;">${icon}</div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    })
+                }).addTo(map);
+                
+                // Crear popup con información
+                let popupContent = `<b>${nodo.id}</b><br>Tipo: ${nodo.tipo}<br>`;
+                
+                if (nodo.tipo === 'parcela_cultivo') {
+                    popupContent += `Cultivo: ${nodo.info.cultivo}<br>`;
+                    popupContent += `Área: ${nodo.info.area_hectareas} ha<br>`;
+                    popupContent += `Producción: ${nodo.info.produccion_estimada_ton} ton`;
+                } else if (nodo.tipo === 'centro_acopio') {
+                    popupContent += `Capacidad: ${nodo.info.capacidad_ton} ton<br>`;
+                    popupContent += `Camiones: ${nodo.info.num_camiones_disponibles}`;
+                } else if (nodo.tipo === 'planta_extractora') {
+                    popupContent += `Capacidad: ${nodo.info.capacidad_procesamiento_ton_dia} ton/día`;
+                }
+                
+                marker.bindPopup(popupContent);
+                
+                // Agregar evento de clic
+                marker.on('click', function() {
+                    seleccionarNodo(nodo);
+                });
+                
+                markers[nodo.id] = marker;
+            });
+        }
+
+        // Dibujar aristas en el mapa
+        function dibujarAristas() {
+            aristasData.forEach(arista => {
+                let color, opacity;
+                
+                if (arista.tipo_camino === 'pavimentado') {
+                    color = '#27ae60';
+                    opacity = 0.6;
+                } else if (arista.tipo_camino === 'grava') {
+                    color = '#f39c12';
+                    opacity = 0.5;
+                } else {
+                    color = '#8b4513';
+                    opacity = 0.4;
+                }
+                
+                const weight = 2 + (arista.accesibilidad_lluvia * 3);
+                
+                // Usar coordenadas de ruta OSMnx si están disponibles, sino usar línea recta
+                let coordenadas;
+                if (arista.coordenadas_ruta && arista.coordenadas_ruta.length > 0) {
+                    // Convertir coordenadas de [lat, lon] a formato Leaflet
+                    coordenadas = arista.coordenadas_ruta.map(coord => [coord[0], coord[1]]);
+                    // Aumentar grosor y opacidad para rutas reales
+                    if (arista.usar_ruta_real) {
+                        opacity = Math.min(opacity + 0.2, 0.9);
+                    }
+                } else {
+                    // Fallback: línea recta
+                    coordenadas = [
+                        [arista.origen_lat, arista.origen_lon],
+                        [arista.destino_lat, arista.destino_lon]
+                    ];
+                }
+                
+                const polyline = L.polyline(
+                    coordenadas,
+                    {
+                        color: color,
+                        weight: weight,
+                        opacity: opacity
+                    }
+                ).addTo(map);
+                
+                let rutaInfo = arista.usar_ruta_real ? '<br><span style="color: green;">✓ Ruta real (OSMnx)</span>' : '';
+                polyline.bindPopup(`
+                    <b>Ruta: ${arista.origen} → ${arista.destino}</b><br>
+                    Distancia: ${arista.distancia_km} km<br>
+                    Tiempo: ${arista.tiempo_minutos} min<br>
+                    Costo: $${arista.costo_por_ton}/ton<br>
+                    Tipo: ${arista.tipo_camino}<br>
+                    Accesibilidad lluvia: ${(arista.accesibilidad_lluvia * 100).toFixed(0)}%${rutaInfo}
+                `);
+                
+                polylines.push(polyline);
+            });
+        }
+
+        // Seleccionar nodo
+        function seleccionarNodo(nodo) {
+            // Si ya está seleccionado, deseleccionar
+            if (selectedNodes.find(n => n.id === nodo.id)) {
+                selectedNodes = selectedNodes.filter(n => n.id !== nodo.id);
+                actualizarInterfaz();
+                return;
+            }
+            
+            // Agregar a selección (máximo 2)
+            if (selectedNodes.length < 2) {
+                selectedNodes.push(nodo);
+                actualizarInterfaz();
+                
+                // Si hay 2 nodos seleccionados, calcular ruta
+                if (selectedNodes.length === 2) {
+                    calcularRuta(selectedNodes[0].id, selectedNodes[1].id);
+                }
+            } else {
+                // Reemplazar el primero
+                selectedNodes[0] = selectedNodes[1];
+                selectedNodes[1] = nodo;
+                actualizarInterfaz();
+                calcularRuta(selectedNodes[0].id, selectedNodes[1].id);
+            }
+        }
+
+        // Actualizar interfaz de selección
+        function actualizarInterfaz() {
+            const listDiv = document.getElementById('selected-nodes-list');
+            
+            if (selectedNodes.length === 0) {
+                listDiv.innerHTML = '<p style="color: #95a5a6; font-size: 11px;">Ningún nodo seleccionado</p>';
+            } else {
+                listDiv.innerHTML = selectedNodes.map((nodo, index) => {
+                    let icon = '🌾';
+                    if (nodo.tipo === 'centro_acopio') icon = '🏭';
+                    if (nodo.tipo === 'planta_extractora') icon = '🏢';
+                    
+                    return `<div class="node-item">
+                        <strong>${index + 1}. ${icon} ${nodo.id}</strong><br>
+                        <small>${nodo.tipo}</small>
+                    </div>`;
+                }).join('');
+            }
+            
+            // Resaltar nodos seleccionados
+            Object.keys(markers).forEach(id => {
+                const marker = markers[id];
+                const isSelected = selectedNodes.find(n => n.id === id);
+                
+                if (isSelected) {
+                    marker.setOpacity(0.6);
+                    marker.setZIndexOffset(1000);
+                } else {
+                    marker.setOpacity(1);
+                    marker.setZIndexOffset(0);
+                }
+            });
+        }
+
+        // Calcular ruta entre dos nodos
+        async function calcularRuta(nodo1Id, nodo2Id) {
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/ruta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nodo1: nodo1Id,
+                        nodo2: nodo2Id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Eliminar línea anterior si existe
+                if (rutaLine) {
+                    map.removeLayer(rutaLine);
+                }
+                
+                // Dibujar línea directa
+                rutaLine = L.polyline(
+                    [[data.nodo1.latitud, data.nodo1.longitud],
+                     [data.nodo2.latitud, data.nodo2.longitud]],
+                    {
+                        color: '#e74c3c',
+                        weight: 4,
+                        opacity: 0.8,
+                        dashArray: '10, 5'
+                    }
+                ).addTo(map);
+                
+                // Mostrar información de la ruta
+                mostrarInfoRuta(data);
+                
+            } catch (error) {
+                console.error('Error calculando ruta:', error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Mostrar información de la ruta
+        function mostrarInfoRuta(data) {
+            const rutaDiv = document.getElementById('ruta-info');
+            rutaDiv.style.display = 'block';
+            
+            let html = '<div class="ruta-info">';
+            html += '<h4>📊 Información de Ruta</h4>';
+            html += `<p><strong>Desde:</strong> ${data.nodo1.id}</p>`;
+            html += `<p><strong>Hasta:</strong> ${data.nodo2.id}</p>`;
+            html += `<p><strong>Distancia directa:</strong> ${data.distancia_directa_km} km</p>`;
+            
+            if (data.ruta_grafo) {
+                if (data.ruta_grafo.existe_ruta_directa) {
+                    html += '<p style="color: #27ae60;"><strong>✓ Ruta directa disponible</strong></p>';
+                    html += `<p>Distancia: ${data.ruta_grafo.distancia_km} km</p>`;
+                    html += `<p>Tiempo: ${data.ruta_grafo.tiempo_minutos.toFixed(1)} min</p>`;
+                    html += `<p>Costo: $${data.ruta_grafo.costo_por_ton.toFixed(2)}/ton</p>`;
+                    html += `<p>Tipo camino: ${data.ruta_grafo.tipo_camino}</p>`;
+                    html += `<p>Accesibilidad lluvia: ${(data.ruta_grafo.accesibilidad_lluvia * 100).toFixed(0)}%</p>`;
+                } else {
+                    html += '<p style="color: #f39c12;"><strong>⚠ Ruta con escalas</strong></p>';
+                    html += `<p>Distancia total: ${data.ruta_grafo.distancia_km.toFixed(2)} km</p>`;
+                    html += `<p>Tiempo total: ${data.ruta_grafo.tiempo_minutos.toFixed(1)} min</p>`;
+                    html += `<p>Costo total: $${data.ruta_grafo.costo_por_ton.toFixed(2)}/ton</p>`;
+                    html += `<p>Escalas: ${data.ruta_grafo.num_escalas}</p>`;
+                    html += `<p><small>Ruta: ${data.ruta_grafo.ruta.join(' → ')}</small></p>`;
+                }
+            } else {
+                html += '<p style="color: #e74c3c;"><strong>✗ No hay ruta disponible en el grafo</strong></p>';
+            }
+            
+            html += '</div>';
+            rutaDiv.innerHTML = html;
+        }
+
+        // Limpiar selección
+        function limpiarSeleccion() {
+            selectedNodes = [];
+            actualizarInterfaz();
+            
+            if (rutaLine) {
+                map.removeLayer(rutaLine);
+                rutaLine = null;
+            }
+            
+            // Limpiar rutas óptimas
+            rutasOptimasLines.forEach(line => map.removeLayer(line));
+            rutasOptimasLines = [];
+            
+            document.getElementById('ruta-info').style.display = 'none';
+        }
+
+        // Mostrar predicciones de IA
+        async function mostrarPredicciones() {
+            if (selectedNodes.length === 0) {
+                alert('Por favor selecciona al menos una parcela de cultivo');
+                return;
+            }
+            
+            const parcelas = selectedNodes.filter(n => n.tipo === 'parcela_cultivo');
+            
+            if (parcelas.length === 0) {
+                alert('Por favor selecciona al menos una parcela de cultivo para ver predicciones');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const predicciones = await Promise.all(
+                    parcelas.map(p => fetch(`/api/prediccion/${p.id}`).then(r => r.json()))
+                );
+                
+                let html = '<div class="ruta-info">';
+                html += '<h4>🤖 Predicciones de IA</h4>';
+                
+                predicciones.forEach(pred => {
+                    html += `<p><strong>${pred.parcela_id}</strong></p>`;
+                    html += `<p>Producción original: ${pred.produccion_original} ton</p>`;
+                    if (pred.produccion_predicha) {
+                        html += `<p>Producción predicha: ${pred.produccion_predicha} ton</p>`;
+                        html += `<p>Diferencia: ${pred.diferencia > 0 ? '+' : ''}${pred.diferencia} ton (${pred.porcentaje_cambio > 0 ? '+' : ''}${pred.porcentaje_cambio}%)</p>`;
+                    }
+                    html += '<hr style="margin: 10px 0;">';
+                });
+                
+                html += '</div>';
+                
+                document.getElementById('ruta-info').innerHTML = html;
+                document.getElementById('ruta-info').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error obteniendo predicciones:', error);
+                alert('Error al obtener predicciones');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Colorear nodos por producción
+        function colorearPorProduccion() {
+            coloreadoPorProduccion = !coloreadoPorProduccion;
+            
+            // Redibujar nodos con nuevos colores
+            Object.keys(markers).forEach(id => {
+                map.removeLayer(markers[id]);
+            });
+            markers = {};
+            dibujarNodos();
+            
+            const btn = event.target;
+            const legend = document.getElementById('produccion-legend');
+            if (coloreadoPorProduccion) {
+                btn.textContent = 'Quitar Coloreado';
+                btn.style.background = '#e74c3c';
+                if (legend) legend.style.display = 'flex';
+            } else {
+                btn.textContent = 'Colorear por Producción';
+                btn.style.background = '#3498db';
+                if (legend) legend.style.display = 'none';
+            }
+        }
+
+        // Mostrar rutas óptimas
+        async function mostrarRutasOptimas() {
+            if (selectedNodes.length === 0) {
+                alert('Por favor selecciona una parcela de cultivo para ver sus rutas óptimas');
+                return;
+            }
+            
+            const parcela = selectedNodes.find(n => n.tipo === 'parcela_cultivo');
+            if (!parcela) {
+                alert('Por favor selecciona una parcela de cultivo');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                // Limpiar rutas óptimas anteriores
+                rutasOptimasLines.forEach(line => map.removeLayer(line));
+                rutasOptimasLines = [];
+                
+                const response = await fetch(`/api/rutas-optimas/${parcela.id}?criterio=costo`);
+                const data = await response.json();
+                
+                if (data.rutas && data.rutas.length > 0) {
+                    // Dibujar las 3 mejores rutas siguiendo el grafo
+                    const topRutas = data.rutas.slice(0, 3);
+                    
+                    for (let index = 0; index < topRutas.length; index++) {
+                        const ruta = topRutas[index];
+                        
+                        try {
+                            // Calcular la ruta real en el grafo
+                            const responseRuta = await fetch('/api/ruta', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    nodo1: parcela.id,
+                                    nodo2: ruta.destino
+                                })
+                            });
+                            
+                            if (!responseRuta.ok) {
+                                console.warn(`Error al calcular ruta ${index + 1}:`, responseRuta.status);
+                                continue;
+                            }
+                            
+                            const rutaData = await responseRuta.json();
+                            
+                            // Verificar que tenemos datos de ruta
+                            if (!rutaData.ruta_grafo) {
+                                console.warn(`No hay ruta disponible para ${parcela.id} → ${ruta.destino}`);
+                                continue;
+                            }
+                            
+                            // Obtener coordenadas de todos los nodos en la ruta
+                            let coordenadasRuta = [];
+                            
+                            if (rutaData.ruta_grafo.ruta && Array.isArray(rutaData.ruta_grafo.ruta)) {
+                                // Ruta con múltiples nodos
+                                coordenadasRuta = rutaData.ruta_grafo.ruta.map(nodoId => {
+                                    const nodo = nodosData.find(n => n.id === nodoId);
+                                    return nodo ? [nodo.latitud, nodo.longitud] : null;
+                                }).filter(coord => coord !== null);
+                            } else {
+                                // Ruta directa - usar nodos origen y destino
+                                const origen = nodosData.find(n => n.id === parcela.id);
+                                const destino = nodosData.find(n => n.id === ruta.destino);
+                                if (origen && destino) {
+                                    coordenadasRuta = [
+                                        [origen.latitud, origen.longitud],
+                                        [destino.latitud, destino.longitud]
+                                    ];
+                                }
+                            }
+                            
+                            if (coordenadasRuta.length > 1) {
+                                const color = index === 0 ? '#e74c3c' : index === 1 ? '#f39c12' : '#3498db';
+                                const weight = index === 0 ? 6 : index === 1 ? 5 : 4;
+                                
+                                // Dibujar la ruta completa siguiendo el grafo
+                                const line = L.polyline(
+                                    coordenadasRuta,
+                                    {
+                                        color: color,
+                                        weight: weight,
+                                        opacity: 0.9,
+                                        dashArray: index === 0 ? '0' : '15, 10'
+                                    }
+                                ).addTo(map);
+                                
+                                // Información de la ruta
+                                let infoRuta = `<b>Ruta ${index + 1} (${data.criterio})</b><br>`;
+                                infoRuta += `Destino: ${ruta.destino}<br>`;
+                                
+                                if (rutaData.ruta_grafo.existe_ruta_directa) {
+                                    infoRuta += `Distancia: ${rutaData.ruta_grafo.distancia_km.toFixed(2)} km<br>`;
+                                    infoRuta += `Tiempo: ${rutaData.ruta_grafo.tiempo_minutos.toFixed(1)} min<br>`;
+                                    infoRuta += `Costo: $${rutaData.ruta_grafo.costo_por_ton.toFixed(2)}/ton<br>`;
+                                    if (rutaData.ruta_grafo.tipo_camino) {
+                                        infoRuta += `Tipo: ${rutaData.ruta_grafo.tipo_camino}<br>`;
+                                    }
+                                } else {
+                                    infoRuta += `Distancia total: ${rutaData.ruta_grafo.distancia_km.toFixed(2)} km<br>`;
+                                    infoRuta += `Tiempo total: ${rutaData.ruta_grafo.tiempo_minutos.toFixed(1)} min<br>`;
+                                    infoRuta += `Costo total: $${rutaData.ruta_grafo.costo_por_ton.toFixed(2)}/ton<br>`;
+                                    if (rutaData.ruta_grafo.num_escalas !== undefined) {
+                                        infoRuta += `Escalas: ${rutaData.ruta_grafo.num_escalas}<br>`;
+                                    }
+                                    if (rutaData.ruta_grafo.ruta && Array.isArray(rutaData.ruta_grafo.ruta)) {
+                                        infoRuta += `Ruta: ${rutaData.ruta_grafo.ruta.join(' → ')}<br>`;
+                                    }
+                                }
+                                
+                                infoRuta += `Producción: ${ruta.produccion_predicha.toFixed(2)} ton`;
+                                
+                                line.bindPopup(infoRuta);
+                                rutasOptimasLines.push(line);
+                            }
+                        } catch (error) {
+                            console.error(`Error procesando ruta ${index + 1}:`, error);
+                            // Continuar con la siguiente ruta
+                        }
+                    }
+                    
+                    // Mostrar información
+                    let html = '<div class="ruta-info">';
+                    html += '<h4>🚀 Rutas Óptimas (Top 3)</h4>';
+                    html += `<p><strong>Parcela:</strong> ${parcela.id}</p>`;
+                    html += `<p><strong>Criterio:</strong> ${data.criterio}</p>`;
+                    html += `<p><small>Las rutas siguen el grafo vial real</small></p>`;
+                    
+                    // Obtener información detallada de cada ruta
+                    for (let index = 0; index < topRutas.length; index++) {
+                        const ruta = topRutas[index];
+                        
+                        try {
+                            const responseRuta = await fetch('/api/ruta', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    nodo1: parcela.id,
+                                    nodo2: ruta.destino
+                                })
+                            });
+                            
+                            if (!responseRuta.ok) {
+                                html += `<hr style="margin: 10px 0;">`;
+                                html += `<p><strong>Ruta ${index + 1}:</strong> ${parcela.id} → ${ruta.destino}</p>`;
+                                html += `<p style="color: #e74c3c;">Error al calcular ruta</p>`;
+                                html += `<p>Costo estimado: $${ruta.costo_total.toFixed(2)}</p>`;
+                                continue;
+                            }
+                            
+                            const rutaData = await responseRuta.json();
+                            
+                            html += `<hr style="margin: 10px 0;">`;
+                            html += `<p><strong>Ruta ${index + 1}:</strong> ${parcela.id} → ${ruta.destino}</p>`;
+                            
+                            if (rutaData.ruta_grafo) {
+                                if (rutaData.ruta_grafo.existe_ruta_directa) {
+                                    html += `<p>✓ Ruta directa</p>`;
+                                    html += `<p>Distancia: ${rutaData.ruta_grafo.distancia_km.toFixed(2)} km</p>`;
+                                    html += `<p>Tiempo: ${rutaData.ruta_grafo.tiempo_minutos.toFixed(1)} min</p>`;
+                                    html += `<p>Costo: $${rutaData.ruta_grafo.costo_por_ton.toFixed(2)}/ton</p>`;
+                                    if (rutaData.ruta_grafo.tipo_camino) {
+                                        html += `<p>Tipo camino: ${rutaData.ruta_grafo.tipo_camino}</p>`;
+                                    }
+                                } else {
+                                    html += `<p>⚠ Ruta con ${rutaData.ruta_grafo.num_escalas || 0} escalas</p>`;
+                                    html += `<p>Distancia total: ${rutaData.ruta_grafo.distancia_km.toFixed(2)} km</p>`;
+                                    html += `<p>Tiempo total: ${rutaData.ruta_grafo.tiempo_minutos.toFixed(1)} min</p>`;
+                                    html += `<p>Costo total: $${rutaData.ruta_grafo.costo_por_ton.toFixed(2)}/ton</p>`;
+                                    if (rutaData.ruta_grafo.ruta && Array.isArray(rutaData.ruta_grafo.ruta)) {
+                                        html += `<p><small>Ruta completa: ${rutaData.ruta_grafo.ruta.join(' → ')}</small></p>`;
+                                    }
+                                }
+                            } else {
+                                html += `<p style="color: #e74c3c;">No hay ruta disponible en el grafo</p>`;
+                            }
+                            
+                            html += `<p>Costo total (con producción): $${ruta.costo_total.toFixed(2)}</p>`;
+                        } catch (error) {
+                            console.error(`Error obteniendo información de ruta ${index + 1}:`, error);
+                            html += `<hr style="margin: 10px 0;">`;
+                            html += `<p><strong>Ruta ${index + 1}:</strong> ${parcela.id} → ${ruta.destino}</p>`;
+                            html += `<p style="color: #e74c3c;">Error al obtener información</p>`;
+                        }
+                    }
+                    
+                    html += '</div>';
+                    document.getElementById('ruta-info').innerHTML = html;
+                    document.getElementById('ruta-info').style.display = 'block';
+                    
+                    // Mostrar leyenda de ruta óptima
+                    const legend = document.getElementById('ruta-optima-legend');
+                    if (legend) legend.style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Error obteniendo rutas óptimas:', error);
+                alert('Error al obtener rutas óptimas');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Mostrar parcelas priorizadas
+        async function mostrarParcelasPriorizadas() {
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/parcelas-priorizadas?top=10');
+                const data = await response.json();
+                
+                let html = '<div class="ruta-info">';
+                html += '<h4>⭐ Parcelas Priorizadas por Rendimiento</h4>';
+                html += `<p><strong>Top ${data.total} parcelas con mayor producción esperada</strong></p>`;
+                
+                data.parcelas.forEach((parcela, index) => {
+                    html += `<hr style="margin: 10px 0;">`;
+                    html += `<p><strong>${index + 1}. ${parcela.parcela_id}</strong></p>`;
+                    html += `<p>Producción predicha: ${parcela.produccion_predicha.toFixed(2)} ton</p>`;
+                    html += `<p>Área: ${parcela.area_hectareas.toFixed(2)} ha</p>`;
+                    html += `<p>Rendimiento: ${parcela.rendimiento_por_hectarea.toFixed(2)} ton/ha</p>`;
+                    
+                    // Resaltar en el mapa
+                    if (markers[parcela.parcela_id]) {
+                        markers[parcela.parcela_id].setZIndexOffset(2000);
+                        markers[parcela.parcela_id].setOpacity(0.8);
+                    }
+                });
+                
+                html += '</div>';
+                document.getElementById('ruta-info').innerHTML = html;
+                document.getElementById('ruta-info').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error obteniendo parcelas priorizadas:', error);
+                alert('Error al obtener parcelas priorizadas');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Inicializar cuando se carga la página
+        window.onload = initMap;
+    </script>
+</body>
+</html>
+
