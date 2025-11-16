@@ -384,7 +384,120 @@
             display: none !important;
         }
 
-       @media (max-width: 900px) {
+        /* Estilos para panel de clima */
+        .clima-panel {
+            margin-top: 18px;
+            padding: 14px 16px;
+            background: rgba(241, 245, 249, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .clima-panel h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #0f172a;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .clima-dia {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
+            border-left: 4px solid #94a3b8;
+            font-size: 12px;
+        }
+
+        .clima-dia.risk-low {
+            border-left-color: #22c55e;
+        }
+
+        .clima-dia.risk-moderate {
+            border-left-color: #f59e0b;
+        }
+
+        .clima-dia.risk-high {
+            border-left-color: #ef4444;
+        }
+
+        .clima-dia.risk-critical {
+            border-left-color: #dc2626;
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .clima-fecha {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .clima-datos {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .clima-dato {
+            font-size: 11px;
+            color: #475569;
+        }
+
+        .clima-dato strong {
+            color: #0f172a;
+        }
+
+        .clima-alerta {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .clima-alerta.alert-low {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+
+        .clima-alerta.alert-moderate {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+
+        .clima-alerta.alert-high {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        .clima-alerta.alert-critical {
+            background: rgba(220, 38, 38, 0.2);
+            color: #991b1b;
+            font-weight: 600;
+        }
+
+        .clima-loading {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .clima-error {
+            padding: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            color: #dc2626;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
             .control-panel {
                 width: calc(100% - 40px);
                 left: 50%;
@@ -436,6 +549,14 @@
             <button class="btn btn-primary" onclick="mostrarRutasOptimas()">Rutas Óptimas</button>
             <button class="btn btn-primary" onclick="mostrarParcelasPriorizadas()">Parcelas Priorizadas</button>
             <button class="btn btn-primary" onclick="colorearPorProduccion()">Colorear por Producción</button>
+            <button class="btn btn-primary" onclick="mostrarPronosticoClima()" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">🌤️ Pronóstico Climático</button>
+        </div>
+        
+        <div id="clima-panel" class="clima-panel" style="display: none;">
+            <h3>🌤️ Pronóstico Climático - Yuma County</h3>
+            <div id="clima-content">
+                <div class="clima-loading">Cargando pronóstico...</div>
+            </div>
         </div>
         
         <div class="loading" id="loading">Cargando...</div>
@@ -1137,6 +1258,88 @@
                 alert('Error al obtener parcelas priorizadas');
             } finally {
                 document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Mostrar pronóstico climático
+        async function mostrarPronosticoClima() {
+            const climaPanel = document.getElementById('clima-panel');
+            const climaContent = document.getElementById('clima-content');
+            
+            // Toggle del panel
+            if (climaPanel.style.display === 'none') {
+                climaPanel.style.display = 'block';
+                climaContent.innerHTML = '<div class="clima-loading">Cargando pronóstico...</div>';
+                
+                try {
+                    const response = await fetch('/api/clima?dias=7');
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        climaContent.innerHTML = `<div class="clima-error">${data.error}</div>`;
+                        return;
+                    }
+                    
+                    // Formatear fecha
+                    function formatearFecha(fechaStr) {
+                        const fecha = new Date(fechaStr);
+                        const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+                        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                        return `${dias[fecha.getDay()]}, ${fecha.getDate()} ${meses[fecha.getMonth()]}`;
+                    }
+                    
+                    // Obtener clase de riesgo
+                    function getRiskClass(riskLevel) {
+                        const riskMap = {
+                            'LOW': 'risk-low',
+                            'MODERATE': 'risk-moderate',
+                            'HIGH': 'risk-high',
+                            'CRITICAL': 'risk-critical'
+                        };
+                        return riskMap[riskLevel] || 'risk-low';
+                    }
+                    
+                    // Obtener clase de alerta
+                    function getAlertClass(riskLevel) {
+                        const alertMap = {
+                            'LOW': 'alert-low',
+                            'MODERATE': 'alert-moderate',
+                            'HIGH': 'alert-high',
+                            'CRITICAL': 'alert-critical'
+                        };
+                        return alertMap[riskLevel] || 'alert-low';
+                    }
+                    
+                    // Construir HTML
+                    let html = '';
+                    data.pronostico.forEach(dia => {
+                        const riskClass = getRiskClass(dia.risk_level);
+                        const alertClass = getAlertClass(dia.risk_level);
+                        
+                        html += `<div class="clima-dia ${riskClass}">`;
+                        html += `<div class="clima-fecha">${formatearFecha(dia.date)}</div>`;
+                        html += `<div class="clima-datos">`;
+                        html += `<div class="clima-dato"><strong>🌡️ Temp:</strong> ${dia.temp_min}°C - ${dia.temp_max}°C</div>`;
+                        html += `<div class="clima-dato"><strong>💧 Precip:</strong> ${dia.precip} mm</div>`;
+                        html += `<div class="clima-dato"><strong>💨 Viento:</strong> ${dia.wind} km/h</div>`;
+                        html += `<div class="clima-dato"><strong>⚠️ Riesgo:</strong> ${dia.risk_level}</div>`;
+                        html += `</div>`;
+                        html += `<div class="clima-alerta ${alertClass}">${dia.alert}</div>`;
+                        html += `</div>`;
+                    });
+                    
+                    climaContent.innerHTML = html;
+                    
+                } catch (error) {
+                    console.error('Error obteniendo pronóstico climático:', error);
+                    climaContent.innerHTML = `<div class="clima-error">Error al cargar pronóstico: ${error.message}</div>`;
+                }
+            } else {
+                climaPanel.style.display = 'none';
             }
         }
 

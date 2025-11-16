@@ -3,7 +3,11 @@ Aplicación Flask para visualización interactiva del grafo agrícola
 """
 
 from flask import Flask, render_template, jsonify, request
-from agricultural_graph import sistema_agricola, calcular_distancia_haversine
+from agricultural_graph import (
+    sistema_agricola,
+    calcular_distancia_haversine,
+    predecir_clima_yuma,
+)
 import json
 import math
 
@@ -383,6 +387,33 @@ def obtener_predicciones_todas():
             "max_produccion": sanitize_for_json(max_prod),
         }
     )
+
+
+@app.route("/api/clima")
+def obtener_clima():
+    """API para obtener pronóstico climático de Yuma County"""
+    dias = request.args.get("dias", 7, type=int)
+
+    if dias < 1 or dias > 7:
+        return jsonify({"error": "El número de días debe estar entre 1 y 7"}), 400
+
+    try:
+        pronostico = predecir_clima_yuma(dias)
+        return jsonify(
+            {
+                "ubicacion": "Yuma County, Arizona",
+                "coordenadas": {"latitud": 32.6927, "longitud": -114.6277},
+                "dias_pronostico": dias,
+                "pronostico": pronostico,
+            }
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return (
+            jsonify({"error": f"Error al obtener pronóstico climático: {str(e)}"}),
+            500,
+        )
 
 
 if __name__ == "__main__":

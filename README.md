@@ -10,6 +10,7 @@ Sistema web interactivo para visualización y análisis de rutas logísticas agr
 - 🤖 Predicción de producción usando Machine Learning (Random Forest)
 - 💰 Análisis de costos, tiempos y accesibilidad
 - 🌧️ Consideración de accesibilidad en temporada de lluvias
+- 🌤️ Pronóstico climático con evaluación de riesgos (temperatura, precipitación, viento)
 
 ## Instalación
 
@@ -51,6 +52,10 @@ ruta = sistema_agricola.calcular_ruta_entre_nodos('PARCELA_001', 'ACOPIO_01')
 
 # Predecir producción usando IA
 produccion_predicha = sistema_agricola.predecir_produccion('PARCELA_001')
+
+# Obtener pronóstico climático
+from agricultural_graph import predecir_clima_yuma
+pronostico = predecir_clima_yuma(7)  # Pronóstico para 7 días
 ```
 
 ## Estructura del Proyecto
@@ -92,6 +97,7 @@ Cada ruta incluye:
 - `GET /api/aristas` - Obtener todas las aristas
 - `POST /api/ruta` - Calcular ruta entre dos nodos
 - `GET /api/prediccion/<nodo_id>` - Obtener predicción de producción
+- `GET /api/clima?dias=7` - Obtener pronóstico climático (1-7 días)
 
 ## Tecnologías
 
@@ -99,6 +105,7 @@ Cada ruta incluye:
 - **Frontend**: Leaflet.js, HTML5, CSS3, JavaScript
 - **IA**: Random Forest Regressor
 - **Visualización**: Folium, Leaflet
+- **Clima**: Open-Meteo API, requests
 
 ## Problemas que Resuelve
 

@@ -14,11 +14,133 @@ import pickle
 import os
 import osmnx as ox
 from shapely.geometry import Point
+import requests
 
 # Coordenadas aproximadas del condado de Yuma, Arizona
 YUMA_CENTER_LAT = 32.6927
 YUMA_CENTER_LON = -114.6277
 YUMA_BOUNDS = {"min_lat": 32.3, "max_lat": 33.0, "min_lon": -115.0, "max_lon": -114.2}
+
+
+def evaluar_riesgo_dia(temp_max, precip, wind):
+    """
+    Evalúa el nivel de riesgo climático para un día basado en temperatura, precipitación y viento.
+
+    Parámetros:
+    -----------
+    temp_max : float
+        Temperatura máxima del día en grados Celsius
+    precip : float
+        Precipitación acumulada en mm
+    wind : float
+        Velocidad máxima del viento en km/h
+
+    Retorna:
+    --------
+    tuple : (riesgo, alerta)
+        riesgo : str - Nivel de riesgo ("LOW", "MODERATE", "HIGH", "CRITICAL")
+        alerta : str - Mensaje descriptivo del riesgo
+    """
+    riesgo = "LOW"
+    alerta = "Condiciones normales"
+
+    if temp_max > 40:
+        riesgo = "CRITICAL"
+        alerta = "Calor extremo"
+    elif temp_max > 35:
+        riesgo = "HIGH"
+        alerta = "Temperatura muy alta"
+    elif temp_max > 30:
+        riesgo = "MODERATE"
+        alerta = "Temperatura elevada"
+
+    if precip > 20:
+        riesgo = "CRITICAL"
+        alerta = "Lluvia intensa"
+    elif precip > 10 and riesgo != "CRITICAL":
+        riesgo = "HIGH"
+        alerta = "Lluvia considerable"
+    elif precip > 2 and riesgo not in ["HIGH", "CRITICAL"]:
+        riesgo = "MODERATE"
+        alerta = "Posibles lluvias"
+
+    if wind > 15:
+        if wind > 30:
+            riesgo = "CRITICAL"
+            alerta = "Viento muy fuerte"
+        elif riesgo != "CRITICAL":
+            riesgo = "HIGH"
+            alerta = "Viento fuerte"
+    elif wind > 8 and riesgo not in ["HIGH", "CRITICAL"]:
+        riesgo = "MODERATE"
+        alerta = "Viento notable"
+
+    return riesgo, alerta
+
+
+def predecir_clima_yuma(dias=7):
+    """
+    Obtiene el pronóstico climático para Yuma County usando la API de Open-Meteo.
+
+    Parámetros:
+    -----------
+    dias : int
+        Número de días de pronóstico (1-7)
+
+    Retorna:
+    --------
+    list : Lista de diccionarios con información climática diaria
+
+    Raises:
+    -------
+    ValueError : Si el número de días está fuera del rango permitido
+    requests.RequestException : Si hay error al consultar la API
+    """
+    if dias < 1 or dias > 7:
+        raise ValueError("Open-Meteo permite hasta 7 días de pronóstico.")
+
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": YUMA_CENTER_LAT,
+        "longitude": YUMA_CENTER_LON,
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max",
+        "timezone": "America/Phoenix",
+        "forecast_days": dias,
+    }
+
+    try:
+        r = requests.get(url, params=params, timeout=10)
+        r.raise_for_status()  # Lanza excepción si hay error HTTP
+        data = r.json()
+    except requests.RequestException as e:
+        raise requests.RequestException(f"Error al consultar API de clima: {e}")
+
+    if "daily" not in data:
+        raise ValueError("Respuesta de API inválida: falta clave 'daily'")
+
+    resultados = []
+    for i in range(min(dias, len(data["daily"]["time"]))):
+        temp_max = data["daily"]["temperature_2m_max"][i]
+        temp_min = data["daily"]["temperature_2m_min"][i]
+        precip = data["daily"]["precipitation_sum"][i]
+        wind = data["daily"]["windspeed_10m_max"][i]
+
+        riesgo, alerta = evaluar_riesgo_dia(temp_max, precip, wind)
+        fecha = data["daily"]["time"][i]
+
+        resultados.append(
+            {
+                "date": fecha,
+                "temp_min": round(temp_min, 1),
+                "temp_max": round(temp_max, 1),
+                "precip": round(precip, 1),
+                "wind": round(wind, 1),
+                "risk_level": riesgo,
+                "alert": alerta,
+            }
+        )
+
+    return resultados
 
 
 def calcular_distancia_haversine(lat1, lon1, lat2, lon2):
